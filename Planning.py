@@ -2,6 +2,7 @@ from Database import Database
 from datetime import datetime
 from Creneaux import Creneau
 from Motifs import Motif
+from Groupes import Groupe
 import csv
 
 class Planning:
@@ -34,6 +35,14 @@ class Planning:
         # Transforme chaque ligne en objet Creneau
         cursor.close()
         # self.db.fermer()
+    def fetch_groupe(self):
+        """Récupère tous les groupes depuis la base et les stocke dans self.liste_motifs"""
+        cursor = self.db.connection.cursor(dictionary=True)
+        cursor.execute("SELECT id_groupe, nom_groupe, nom_responsable FROM groupes ORDER BY id_groupe")
+        groupes = cursor.fetchall()
+        cursor.close()
+        return groupes
+        # self.db.fermer()
     
     def ajout_groupe (self,nom_groupe,nom_responsable):
         cursor = self.db.connection.cursor()
@@ -50,31 +59,55 @@ class Planning:
 
         print("Groupe ajouté avec succès")
 
-    def ajout_planning (self, date_planning, id_groupe, id_creneaux, id_motif):
+    def ajout_planning(self, date_planning, id_groupe, id_creneaux, id_motif):
+
         cursor = self.db.connection.cursor()
+
         verification = """
-    SELECT COUNT(*) FROM planning
-    WHERE date_planning = %s
-    AND id_creneaux = %s
-    AND statut = 'VALIDE'
-    """
+            SELECT COUNT(*) FROM planning
+            WHERE date_planning = %s
+            AND id_creneaux = %s
+            AND statut = 'VALIDE'
+        """
 
         cursor.execute(verification, (date_planning, id_creneaux))
         deja_pris = cursor.fetchone()[0]
+
         if deja_pris > 0:
-            print("Ce créneau est déjà réservé à cette date.")
             cursor.close()
-            return False
+            raise Exception(f"Créneau {id_creneaux} déjà réservé.")
+
         insertion = """
-    INSERT INTO planning (date_planning, id_groupe, id_creneaux, id_motif)
-    VALUES (%s, %s, %s, %s)
-    """
+            INSERT INTO planning (date_planning, id_groupe, id_creneaux, id_motif)
+            VALUES (%s, %s, %s, %s)
+        """
 
         cursor.execute(insertion, (date_planning, id_groupe, id_creneaux, id_motif))
-        self.db.connection.commit()
 
-        print("Planning ajouté avec succès.")
+        cursor.close()  
+    def ajout_multiple_planning(self, date_planning, id_groupe, choix_creneaux, id_motif):
+        
+        erreurs = []
 
+        try:
+
+            for creneau in choix_creneaux:
+                try:
+                    self.ajout_planning(date_planning, id_groupe, creneau, id_motif)
+                except Exception as e:
+                    erreurs.append((creneau, str(e)))
+
+            if erreurs:
+                self.db.connection.rollback()
+                print("Certaines erreurs détectées. Aucun créneau ajouté.")
+            else:
+                self.db.connection.commit()
+                print("Tous les créneaux ont été ajoutés avec succès.")
+
+        except Exception as e:
+            self.db.connection.rollback()
+            print(" Erreur critique. Aucun créneau ajoutéguygy.")
+            print("Détail :", e)     
     def vue_globale(self, date_planning):
 
         cursor = self.db.connection.cursor(dictionary=True)
@@ -112,12 +145,13 @@ class Planning:
         query = """
             SELECT 
                 c.heure_debut,
-                c.heure_fin
+                c.heure_fin,
+                p.statut
             FROM creneaux c
             LEFT JOIN planning p 
                 ON c.id_creneaux = p.id_creneaux
                 AND p.date_planning = %s
-            WHERE p.id_planning IS NULL
+            WHERE p.id_planning IS NULL OR p.statut ="ANNULE"
             ORDER BY c.heure_debut
         """
 
@@ -189,4 +223,4 @@ class Planning:
                     row["nom_responsable"]
                 ])
 
-        print(f"✅ Export réussi : {filename}")
+        print(f"Export réussi : {filename}")

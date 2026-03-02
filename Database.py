@@ -13,6 +13,7 @@ class Database :
         self.charset="utf8mb4"
         self.use_unicode=True
         self.connection = None
+        self.autocommit = False
 
     def connecter(self):
         """Etablit la connexion MySQL"""
@@ -26,6 +27,7 @@ class Database :
                 database=self.database,
                 charset=self.charset,
                 use_unicode=self.use_unicode,
+                autocommit = self.autocommit
             )
             print("Connecte a MySQL")
             return self.connection

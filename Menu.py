@@ -26,10 +26,12 @@ class Menu:
     def menu(self):
         self.planning.fetch_creneaux()
         self.planning.fetch_motif()
+
+
         while True:
             
             print("===========MENU===========") 
-            print('')  
+            print('')
             print(f"Bienvenue {self.user.nom}")
             print("1 - Afficher les creneaux ")
             print("2 - Ajouter un groupe ")
@@ -40,8 +42,6 @@ class Menu:
             print("7 - Annuler planning ")
             print("8 - Exporter planning journalier (CSV)")
 
-
-            
             print("0. Quitter")
             print("")
             choix = input("Veuillez choisir une des options  : ").strip()
@@ -56,22 +56,55 @@ class Menu:
                     nom_groupe = input("Nom Groupe : ").strip()
                     nom_responsable = input("Nom Responsable : ").strip()
                     self.planning.ajout_groupe(nom_groupe,nom_responsable)
+                case "3":
+                    print("\nListe des groupes :")
+                    groupe = self.planning.fetch_groupe()
+                    for g in groupe:
+                        print(f"{g["id_groupe"]} {g["nom_groupe"]} {g["nom_responsable"]}")
                 case "4":
-                    
-                    date_planning = self.saisir_date()
-                    id_groupe = input("Saisir Le ID GROUPE ")
-                    print("\nListe des créneaux :")
+                    try:
+                        # Saisie de la date
+                        date_planning = self.saisir_date()
 
-                    for c in self.planning.liste_creneaux:
-                        print(f"{c.id_creneaux} - {c.heure_debut} / {c.heure_fin}")
-                    id_creneaux = input("Choisir l'id du créneau : ")
+                        # Affichage des groupes
+                        print("\nListe des groupes :")
+                        groupes = self.planning.fetch_groupe()
+                        for g in groupes:
+                            print(f"{g['id_groupe']} - {g['nom_groupe']} - {g['nom_responsable']}")
+                        id_groupe = input("Saisir le ID GROUPE : ").strip()
 
-                    print("\nListe des motifs :")
-                    for m in self.planning.liste_motifs:
-                        print(f"{m.id_motif} - {m.nom}")
-                    id_motif = input("Choisir l'id du motif : ")
+                        # Affichage des créneaux
+                        print("\nListe des créneaux :")
+                        lc = self.planning.liste_creneaux
+                        for c in lc:
+                            print(f"{c.id_creneaux} - {c.heure_debut} / {c.heure_fin}")
 
-                    self.planning.ajout_planning(date_planning,id_groupe,id_creneaux,id_motif)
+                        # Saisie des créneaux multiples
+                        choix_creneaux = []
+                        while True:
+                            id_creneaux = input("Choisir id créneau (ou 'q' pour quitter) : ").strip()
+                            if id_creneaux.lower() == "q":
+                                break
+                            elif id_creneaux in choix_creneaux:
+                                print("Déjà choisi !")
+                            else:
+                                choix_creneaux.append(id_creneaux)
+
+                        # Affichage des motifs
+                        print("\nListe des motifs :")
+                        for m in self.planning.liste_motifs:
+                            print(f"{m.id_motif} - {m.nom}")
+                        id_motif = input("Choisir l'id du motif : ").strip()
+
+                        # Tentative d'ajout multiple
+                        self.planning.ajout_multiple_planning(date_planning, id_groupe, choix_creneaux, id_motif)
+
+                    except ValueError:
+                        print(" Entrée invalide. Veuillez saisir des nombres valides pour les IDs.")
+                    except Exception as e:
+                        print(" Une erreur est survenue lors de l'ajout du planning.")
+                        print("Détail :", e) 
+                      
                 case "5":
                     date_planning = self.saisir_date()
                     planning_list = self.planning.vue_globale(date_planning)
