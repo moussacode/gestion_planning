@@ -224,3 +224,33 @@ class Planning:
                 ])
 
         print(f"Export réussi : {filename}")
+
+    def actualisation_statut (self,maintenant):
+        
+
+        cursor = self.db.connection.cursor(dictionary=True)
+        query = """
+            SELECT
+                p.id_planning, 
+                p.statut,
+                p.date_planning
+            FROM planning p
+        """
+        cursor.execute(query,)
+        result = cursor.fetchall()
+        cursor.close()
+
+        for p in result :
+            if p["date_planning"] < maintenant:
+                cursor = self.db.connection.cursor()
+                query = "UPDATE planning SET statut = 'TERMINE' WHERE id_planning = %s"
+
+                cursor.execute(query, (p['id_planning'],))
+                self.db.connection.commit()
+                cursor.close()
+            
+
+
+
+
+        

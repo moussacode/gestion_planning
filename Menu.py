@@ -24,15 +24,18 @@ class Menu:
             except ValueError:
                 print("Date invalide ")
     def menu(self):
+        maintenant = datetime.now().date()
         self.planning.fetch_creneaux()
         self.planning.fetch_motif()
+        self.planning.actualisation_statut(maintenant)
+
 
 
         while True:
             
             print("===========MENU===========") 
             print('')
-            print(f"Bienvenue {self.user.nom}")
+            print(f"Bienvenue {self.user.nom} {maintenant}")
             print("1 - Afficher les creneaux ")
             print("2 - Ajouter un groupe ")
             print("3 - Afficher les groupes")
